@@ -1,11 +1,15 @@
 package com.example.todolist.resources;
 
 import com.example.todolist.constants.Status;
+import com.example.todolist.dto.CreateTodoDto;
 import com.example.todolist.dto.TodoDto;
 import com.example.todolist.services.TodoListService;
 import jakarta.annotation.Nonnull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -17,21 +21,30 @@ public class TodoListApi {
     private TodoListService todoListService;
 
     @PostMapping
-    public void createTodo(@RequestBody TodoDto todoDto) {
-        todoListService.createTodo(todoDto);
+    public ResponseEntity<Void> createTodo(@RequestBody CreateTodoDto newTodoDto) {
+        todoListService.createTodo(newTodoDto);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @PutMapping("/description")
-    public void updateTodoDescription(@RequestParam @Nonnull Long id, @RequestParam @Nonnull String description) {
-        todoListService.updateTodoDescription(id, description);
+    public ResponseEntity<String> updateTodoDescription(@RequestBody TodoDto todoDto) {
+        if (todoDto.getId() == null || todoDto.getDescription() == null || todoDto.getDescription().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Id and description must be provided and not blank");
+        }
+        todoListService.updateTodoDescription(todoDto.getId(), todoDto.getDescription());
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body("Description updated successfully");
     }
 
     @PutMapping("/status")
-    public void updateTodoStatus(@RequestParam @Nonnull Long id, @RequestParam @Nonnull Status status) {
-        if (status == Status.PAST_DUE) {
-            throw new IllegalArgumentException("Status cannot be set to PAST_DUE");
+    public ResponseEntity<String> updateTodoStatus(@RequestBody TodoDto todoDto) {
+        if (todoDto.getId() == null || todoDto.getStatus() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Id and status must be provided");
         }
-        todoListService.updateTodoStatus(id, status);
+        if (todoDto.getStatus() == Status.PAST_DUE) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Status cannot be set to PAST_DUE");
+        }
+        todoListService.updateTodoStatus(todoDto.getId(), todoDto.getStatus());
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body("Status updated successfully");
     }
 
     @GetMapping("/{id}")

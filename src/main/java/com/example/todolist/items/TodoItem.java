@@ -16,7 +16,7 @@ public class TodoItem {
     @GeneratedValue
     private Long id;
     private String description;
-    private Status status; // "not done", "done", "past due"
+    private Status status;
     private LocalDateTime creationDateTime;
     private LocalDateTime dueDateTime;
     private LocalDateTime completionDateTime;

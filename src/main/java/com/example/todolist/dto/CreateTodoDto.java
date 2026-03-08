@@ -1,22 +1,15 @@
 package com.example.todolist.dto;
 
-import com.example.todolist.constants.Status;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Data
-@Builder
 @AllArgsConstructor
 @NoArgsConstructor(force = true)
-public class TodoDto {
-    Long id;
+public class CreateTodoDto {
     String description;
-    Status status;
-    LocalDateTime creationDateTime;
     LocalDateTime dueDateTime;
-    LocalDateTime completionDateTime;
 }

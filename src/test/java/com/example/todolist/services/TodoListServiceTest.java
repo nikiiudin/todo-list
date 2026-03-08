@@ -1,7 +1,9 @@
 package com.example.todolist.services;
 
 import com.example.todolist.constants.Status;
+import com.example.todolist.dto.CreateTodoDto;
 import com.example.todolist.dto.TodoDto;
+import com.example.todolist.exceptions.TodoNotFoundException;
 import com.example.todolist.items.TodoItem;
 import com.example.todolist.repositories.TodoRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,7 +17,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -47,10 +48,7 @@ class TodoListServiceTest {
 
     @Test
     void createTodo_shouldSaveEntity() {
-        TodoDto dto = new TodoDto(null, "Buy groceries", Status.NOT_DONE,
-                LocalDateTime.of(2026, 3, 1, 10, 0),
-                LocalDateTime.of(2026, 3, 10, 10, 0),
-                null);
+        CreateTodoDto dto = new CreateTodoDto("Buy groceries", LocalDateTime.of(2026, 3, 10, 10, 0));
         when(todoRepository.save(any(TodoItem.class))).thenReturn(sampleItem);
 
         todoListService.createTodo(dto);
@@ -80,7 +78,7 @@ class TodoListServiceTest {
         when(todoRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> todoListService.updateTodoDescription(99L, "desc"))
-                .isInstanceOf(NoSuchElementException.class)
+                .isInstanceOf(TodoNotFoundException.class)
                 .hasMessageContaining("Todo item not found with id: 99");
     }
 
@@ -102,7 +100,7 @@ class TodoListServiceTest {
         when(todoRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> todoListService.updateTodoStatus(99L, Status.DONE))
-                .isInstanceOf(NoSuchElementException.class)
+                .isInstanceOf(TodoNotFoundException.class)
                 .hasMessageContaining("Todo item not found with id: 99");
     }
 
@@ -123,7 +121,7 @@ class TodoListServiceTest {
         when(todoRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> todoListService.getTodoItemById(99L))
-                .isInstanceOf(NoSuchElementException.class);
+                .isInstanceOf(TodoNotFoundException.class);
     }
 
 

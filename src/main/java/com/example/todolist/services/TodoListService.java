@@ -1,15 +1,17 @@
 package com.example.todolist.services;
 
 import com.example.todolist.constants.Status;
+import com.example.todolist.dto.CreateTodoDto;
 import com.example.todolist.dto.TodoDto;
+import com.example.todolist.exceptions.TodoNotFoundException;
 import com.example.todolist.items.TodoItem;
 import com.example.todolist.repositories.TodoRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 @Service
 public class TodoListService {
@@ -19,42 +21,61 @@ public class TodoListService {
     private final ModelMapper mapper = new ModelMapper();
 
 
-    public void createTodo(TodoDto todoDto) {
-        todoRepository.save(mapToEntity(todoDto));
+    public void createTodo(CreateTodoDto newTodoDto) {
+        TodoItem newItem = mapToEntity(newTodoDto);
+        newItem.setCreationDateTime(LocalDateTime.now());
+        newItem.setStatus(Status.NOT_DONE);
+        todoRepository.save(newItem);
     }
 
     public void updateTodoDescription(Long id, String description) {
-        TodoItem item = todoRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Todo item not found with id: " + id));
+        TodoItem item = foundOrThrow(id);
         item.setDescription(description);
         todoRepository.save(item);
     }
 
     public void updateTodoStatus(Long id, Status status) {
-        TodoItem item = todoRepository.findById(id)
-                .orElseThrow(() -> new NoSuchElementException("Todo item not found with id: " + id));
+        TodoItem item = foundOrThrow(id);
         item.setStatus(status);
+        if (status == Status.DONE) {
+            item.setCompletionDateTime(LocalDateTime.now());
+        } else {
+            item.setCompletionDateTime(null);
+        }
         todoRepository.save(item);
     }
 
-    public TodoDto getTodoItemById(Long id) {
+    private TodoItem foundOrThrow(Long id) {
         return todoRepository.findById(id)
-                .map(this::mapToDto)
-                .orElseThrow();
+                .orElseThrow(() -> new TodoNotFoundException(id));
+    }
+
+    public TodoDto getTodoItemById(Long id) {
+        TodoItem item = foundOrThrow(id);
+        return mapToDto(checkIfOverdue(item));
     }
 
     public List<TodoDto> getTodoList(boolean onlyNotDone) {
         List<TodoItem> list = onlyNotDone ? todoRepository.findAllByStatus(Status.NOT_DONE) : todoRepository.findAll();
         return list.stream()
+                .map(this::checkIfOverdue)
                 .map(this::mapToDto)
                 .toList();
     }
 
-    private TodoItem mapToEntity(TodoDto dto) {
+    private TodoItem checkIfOverdue(TodoItem item) {
+        if (item.getStatus() == Status.NOT_DONE && item.getDueDateTime() != null && item.getDueDateTime().isBefore(LocalDateTime.now())) {
+            item.setStatus(Status.PAST_DUE);
+            todoRepository.save(item);
+        }
+        return item;
+    }
+
+    private TodoItem mapToEntity(CreateTodoDto dto) {
         try {
             return mapper.map(dto, TodoItem.class);
         } catch (Exception e) {
-            throw new IllegalArgumentException("Error mapping TodoDto to TodoItem", e);
+            throw new IllegalArgumentException("Error mapping CreateTodoDto to TodoItem", e);
         }
     }
 

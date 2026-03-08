@@ -1,6 +1,7 @@
 package com.example.todolist.resources;
 
 import com.example.todolist.constants.Status;
+import com.example.todolist.dto.CreateTodoDto;
 import com.example.todolist.dto.TodoDto;
 import com.example.todolist.services.TodoListService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,7 +16,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -37,55 +37,57 @@ class TodoListApiTest {
 
 
     @Test
-    void createTodo_shouldReturn200() throws Exception {
+    void createTodo_shouldReturn201() throws Exception {
         TodoDto dto = new TodoDto(null, "Buy groceries", Status.NOT_DONE,
                 LocalDateTime.of(2026, 3, 1, 10, 0),
                 LocalDateTime.of(2026, 3, 10, 10, 0),
                 null);
 
-        doNothing().when(todoListService).createTodo(any(TodoDto.class));
+        doNothing().when(todoListService).createTodo(any(CreateTodoDto.class));
 
         mockMvc.perform(post("/api/todo")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
 
-        verify(todoListService).createTodo(any(TodoDto.class));
+        verify(todoListService).createTodo(any(CreateTodoDto.class));
     }
 
 
     @Test
-    void updateTodoDescription_shouldReturn200() throws Exception {
+    void updateTodoDescription_shouldReturn202() throws Exception {
         doNothing().when(todoListService).updateTodoDescription(1L, "New description");
-
+        TodoDto dto = TodoDto.builder().id(1L).description("New description").build();
         mockMvc.perform(put("/api/todo/description")
-                        .param("id", "1")
-                        .param("description", "New description"))
-                .andExpect(status().isOk());
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isAccepted());
 
         verify(todoListService).updateTodoDescription(1L, "New description");
     }
 
 
     @Test
-    void updateTodoStatus_withDone_shouldReturn200() throws Exception {
+    void updateTodoStatus_withDone_shouldReturn202() throws Exception {
         doNothing().when(todoListService).updateTodoStatus(1L, Status.DONE);
 
+        TodoDto dto = TodoDto.builder().id(1L).status(Status.DONE).build();
         mockMvc.perform(put("/api/todo/status")
-                        .param("id", "1")
-                        .param("status", "DONE"))
-                .andExpect(status().isOk());
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isAccepted());
 
         verify(todoListService).updateTodoStatus(1L, Status.DONE);
     }
 
     @Test
-    void updateTodoStatus_withPastDue_shouldThrowException() {
-        assertThatThrownBy(() ->
-                mockMvc.perform(put("/api/todo/status")
-                        .param("id", "1")
-                        .param("status", "PAST_DUE"))
-        ).hasCauseInstanceOf(IllegalArgumentException.class);
+    void updateTodoStatus_withPastDue_shouldReturn400() throws Exception {
+        TodoDto dto = TodoDto.builder().id(1L).status(Status.PAST_DUE).build();
+
+        mockMvc.perform(put("/api/todo/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isBadRequest());
 
         verify(todoListService, never()).updateTodoStatus(anyLong(), any());
     }
