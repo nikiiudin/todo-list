@@ -10,7 +10,7 @@
 
     <groupId>com.example</groupId>
     <artifactId>todo-list</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>1.0.0</version>
     <name>todo-list</name>
 
     <properties>
@@ -66,7 +66,15 @@
             <artifactId>jackson-datatype-jsr310</artifactId>
             <version>2.19.4</version>
         </dependency>
-
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

@@ -81,13 +81,13 @@ class TodoListApiTest {
     }
 
     @Test
-    void updateTodoStatus_withPastDue_shouldReturn400() throws Exception {
+    void updateTodoStatus_withPastDue_shouldReturn403() throws Exception {
         TodoDto dto = TodoDto.builder().id(1L).status(Status.PAST_DUE).build();
 
         mockMvc.perform(put("/api/todo/status")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isForbidden());
 
         verify(todoListService, never()).updateTodoStatus(anyLong(), any());
     }

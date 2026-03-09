@@ -1,38 +1,88 @@
 # Todo List API
 
-A RESTful Todo List application built with Spring Boot 4, JPA, and H2 in-memory database.
+A RESTful service for managing todo items. Supports creating, updating, and retrieving todos with automatic detection of
+past-due items.
+
+## Assumptions
+
+- Data is stored in an **H2 in-memory database** — all data is lost on restart.
+- **No authentication** is implemented — all endpoints are publicly accessible.
+- A background scheduler automatically marks overdue items as `PAST_DUE` every 60 seconds.
+- Setting status to `PAST_DUE` manually is forbidden — it is managed by the system only.
+- Enum values (e.g. status) are accepted case-insensitively (`done`, `Done`, `DONE` all work).
 
 ## Tech Stack
 
-- **Java 21**
-- **Spring Boot 4.0.3**
-- **Spring Data JPA**
-- **H2 Database** (in-memory)
-- **Lombok**
-- **ModelMapper**
-- **Jackson** (with JSR-310 support for `LocalDateTime`)
-- **JUnit 5 + Mockito** (testing)
+- **Runtime:** Java 21, Spring Boot 4.0.3
+- **Database:** H2 (in-memory)
+- **Frameworks:** Spring Web MVC, Spring Data JPA
+- **Key Libraries:** Lombok, ModelMapper, Jackson (with JSR-310 for `LocalDateTime`)
+- **Testing:** JUnit 5, Mockito, Spring MockMvc
+- **Containerization:** Docker (multi-stage build)
 
-## Getting Started
+## How To
 
 ### Prerequisites
 
 - Java 21+
 - Maven 3.9+
+- Docker (optional, for containerized run)
 
-### Run the Application
+### Build the Service
+
+```bash
+mvn clean package
+```
+
+This compiles the code, runs tests, and produces a JAR in `target/`.
+
+To build without running tests:
+
+```bash
+mvn clean package -DskipTests
+```
+
+### Run Automatic Tests
+
+```bash
+mvn test
+```
+
+Tests cover three layers:
+
+- **Repository tests** — integration tests with H2 database (`@SpringBootTest`)
+- **Service tests** — unit tests with mocked repository (`@ExtendWith(MockitoExtension.class)`)
+- **API tests** — controller tests with MockMvc (`@WebMvcTest`)
+
+### Run the Service Locally
 
 ```bash
 mvn spring-boot:run
 ```
 
-The application starts at `http://localhost:8080`.
-
-### Run Tests
+Or run the built JAR directly:
 
 ```bash
-mvn test
+java -jar target/todo-list-0.0.1-SNAPSHOT.jar
 ```
+
+The application starts at `http://localhost:8080`.
+
+### Run with Docker
+
+Build the Docker image:
+
+```bash
+docker build -t todo-list .
+```
+
+Run the container:
+
+```bash
+docker run -p 8080:8080 todo-list
+```
+
+The application will be available at `http://localhost:8080`.
 
 ## API Endpoints
 
@@ -72,7 +122,7 @@ PUT /api/todo/description
 }
 ```
 
-**Response:** `202 Accepted` — `"Description updated successfully"`
+**Response:** `202 Accepted`
 
 ---
 
@@ -91,9 +141,9 @@ PUT /api/todo/status
 }
 ```
 
-**Response:** `202 Accepted` — `"Status updated successfully"`
+**Response:** `202 Accepted`
 
-> **Note:** Setting status to `PAST_DUE` manually is not allowed and returns `400 Bad Request`.
+> **Note:** Setting status to `PAST_DUE` is forbidden and returns `403 Forbidden`.
 
 ---
 
@@ -128,7 +178,7 @@ GET /api/todo/list?onlyNotDone={true|false}
 |---------------|---------|------------------------------------------|
 | `onlyNotDone` | boolean | If `true`, returns only `NOT_DONE` items |
 
-**Response:** `200 OK` — array of `TodoDto`
+**Response:** `200 OK` — array of todo items
 
 ## Todo Item Statuses
 
@@ -138,16 +188,10 @@ GET /api/todo/list?onlyNotDone={true|false}
 | `DONE`     | Set manually; records `completionDateTime`      |
 | `PAST_DUE` | Set automatically when `dueDateTime` has passed |
 
-## Past Due Scheduler
-
-A background scheduler runs every **60 seconds** and automatically marks all `NOT_DONE` items with an expired
-`dueDateTime` as `PAST_DUE`.
-
 ## Error Handling
 
 | HTTP Status | Condition                              |
 |-------------|----------------------------------------|
 | `400`       | Missing or invalid request fields      |
-| `400`       | Attempting to set status to `PAST_DUE` |
+| `403`       | Attempting to set status to `PAST_DUE` |
 | `404`       | Todo item not found by ID              |
-
